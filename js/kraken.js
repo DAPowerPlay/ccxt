@@ -826,14 +826,14 @@ module.exports = class kraken extends Exchange {
         return this.filterBySinceLimit (result, since, limit);
     }
 
-    async queryTrades(tradeIds) {
-        if (!Array.isArray(tradeIds)) {
+    async queryTrades (tradeIds) {
+        if (!Array.isArray (tradeIds)) {
             return;
         }
         let parsedTrades = [];
-        let response = await this.privatePostQueryTrades(this.extend ({
+        let response = await this.privatePostQueryTrades (this.extend ({
             'trades': true, // whether or not to include trades in output (optional, default false)
-            'txid': tradeIds.join(), // comma delimited list of transaction ids to query info about (20 maximum)
+            'txid': tradeIds.join (), // comma delimited list of transaction ids to query info about (20 maximum)
         }));
         let trades = response['result'];
         let ids = Object.keys (trades);
@@ -841,7 +841,7 @@ module.exports = class kraken extends Exchange {
             let key = ids[i];
             let trade = trades[key];
             trade['id'] = key;
-            parsedTrades.push(this.parseTrade(trade));
+            parsedTrades.push (this.parseTrade (trade));
         }
         return parsedTrades;
     }
@@ -855,9 +855,8 @@ module.exports = class kraken extends Exchange {
         }, params));
         let orders = response['result'];
         let order = this.parseOrder (this.extend ({ 'id': id }, orders[id]));
-        
         if (orders[id].trades) {
-            order['trades'] = await this.queryTrades(orders[id].trades);
+            order['trades'] = await this.queryTrades (orders[id].trades);
         }
         return this.extend ({ 'info': response }, order);
     }

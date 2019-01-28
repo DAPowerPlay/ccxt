@@ -786,6 +786,23 @@ class kraken (Exchange):
             result.append(self.parse_order(order, market))
         return self.filter_by_since_limit(result, since, limit)
 
+    async def query_trades(self, tradeIds):
+        if not isinstance(tradeIds, list):
+            return
+        parsedTrades = []
+        response = await self.privatePostQueryTrades(self.extend({
+            'trades': True,  # whether or not to include trades in output(optional, default False)
+            'txid': tradeIds.join(),  # comma delimited list of transaction ids to query info about(20 maximum)
+        }))
+        trades = response['result']
+        ids = list(trades.keys())
+        for i in range(0, len(ids)):
+            key = ids[i]
+            trade = trades[key]
+            trade['id'] = key
+            parsedTrades.append(self.parse_trade(trade))
+        return parsedTrades
+
     async def fetch_order(self, id, symbol=None, params={}):
         await self.load_markets()
         response = await self.privatePostQueryOrders(self.extend({
@@ -795,6 +812,8 @@ class kraken (Exchange):
         }, params))
         orders = response['result']
         order = self.parse_order(self.extend({'id': id}, orders[id]))
+        if orders[id].trades:
+            order['trades'] = await self.query_trades(orders[id].trades)
         return self.extend({'info': response}, order)
 
     async def fetch_my_trades(self, symbol=None, since=None, limit=None, params={}):

@@ -826,6 +826,26 @@ class kraken extends Exchange {
         return $this->filter_by_since_limit($result, $since, $limit);
     }
 
+    public function query_trades ($tradeIds) {
+        if (!gettype ($tradeIds) === 'array' && count (array_filter (array_keys ($tradeIds), 'is_string')) == 0) {
+            return;
+        }
+        $parsedTrades = array ();
+        $response = $this->privatePostQueryTrades (array_merge (array (
+            'trades' => true, // whether or not to include $trades in output (optional, default false)
+            'txid' => $tradeIds->join (), // comma delimited list of transaction $ids to query info about (20 maximum)
+        )));
+        $trades = $response['result'];
+        $ids = is_array ($trades) ? array_keys ($trades) : array ();
+        for ($i = 0; $i < count ($ids); $i++) {
+            $key = $ids[$i];
+            $trade = $trades[$key];
+            $trade['id'] = $key;
+            $parsedTrades[] = $this->parse_trade($trade);
+        }
+        return $parsedTrades;
+    }
+
     public function fetch_order ($id, $symbol = null, $params = array ()) {
         $this->load_markets();
         $response = $this->privatePostQueryOrders (array_merge (array (
@@ -835,6 +855,9 @@ class kraken extends Exchange {
         ), $params));
         $orders = $response['result'];
         $order = $this->parse_order(array_merge (array ( 'id' => $id ), $orders[$id]));
+        if ($orders[$id].trades) {
+            $order['trades'] = $this->query_trades ($orders[$id].trades);
+        }
         return array_merge (array ( 'info' => $response ), $order);
     }
 
